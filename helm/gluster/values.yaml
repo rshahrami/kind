@@ -1,0 +1,7 @@
+
+name:
+  glusterfs: glusterfs
+  pvc: pvctest
+
+secret:
+  admin: heketi-admin-secret

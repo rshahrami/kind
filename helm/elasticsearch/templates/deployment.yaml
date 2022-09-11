@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: 
+  name: {{ .Values.name }}-deploy
+  labels:
+    deploy: {{ .Values.name }}
+spec:
+  selector:
+    matchLabels:
+      deploy: {{ .Values.name }} 
+  replicas: {{ .Values.replicaCount }}
+  template:
+    metadata:
+      labels:
+        deploy: {{ .Values.name }}
+    spec:
+        restartPolicy: {{ .Values.container.restartPolicy }}
+        containers:
+        - name: {{ .Values.name }}
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          resources:
+            requests:
+              memory: {{ .Values.resources.requests.memory }}
+              cpu: {{ .Values.resources.requests.cpu }}
+            limits:
+              memory: {{ .Values.resources.limits.memory }}
+              cpu: {{ .Values.resources.limits.cpu }}
+
+          envFrom:
+          - configMapRef:
+              name: {{ .Values.name }}-config-env
+
+          volumeMounts:
+          - mountPath: /usr/share/elasticsearch/data
+            name: {{ .Values.name }}-gluster-volume
+
+        nodeSelector:
+            name-node: {{ .Values.nodeSelector.nameNode }}
+
+        volumes:
+        - name: {{ .Values.name }}-gluster-volume
+          glusterfs:
+            endpoints: {{ .Values.name }}-endpoint
+            path: volume1 
+            readOnly: no

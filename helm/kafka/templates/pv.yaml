@@ -1,0 +1,49 @@
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: {{ .Values.name }}01
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 2Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/volumes/kafka/kafka01"
+
+---
+
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: {{ .Values.name }}02
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 2Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/volumes/kafka/kafka02"
+
+---
+
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: {{ .Values.name }}03
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 2Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/volumes/kafka/kafka03"
+---

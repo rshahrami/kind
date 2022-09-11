@@ -1,0 +1,4 @@
+helm/heketi/files/secret/heketi-ssh-key*
+jenkins-stack-kubernetes/*.crt
+jenkins-stack-kubernetes/*.key
+jenkins-stack-kubernetes/*.env

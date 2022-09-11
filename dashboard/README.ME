@@ -1,0 +1,9 @@
+kubectl -n kubernetes-dashboard create token admin-user
+
+chmod +x ~/dashboard/dashboard.sh
+
+sudo ln -s ~/dashboard/dashboard.sh /usr/local/bin/dashboard
+
+dashboard start
+dashboard status
+dashboard stop

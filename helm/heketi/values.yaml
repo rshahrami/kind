@@ -1,0 +1,28 @@
+
+name:
+  heketi: heketi
+  glusterfs: glusterfs-cluster
+
+
+servicetype: NodePort
+replica: 1
+restartPolicy: "Always"
+
+secret:
+  ssh: heketi-ssh-key-file
+  admin: heketi-admin-secret
+
+
+image: 
+  repository: nexus:32002/heketi
+  tag: 10
+  pullPolicy: IfNotPresent
+
+
+resources:
+  limits:
+    cpu: 100m
+    memory: 2048Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi

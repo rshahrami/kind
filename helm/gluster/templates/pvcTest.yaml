@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Values.name.pvc }} #pvctest
+  labels:
+    pvc: {{ .Values.name.pvc }} #pvctest
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: {{ .Values.name.glusterfs }} #glusterfs
+  resources:
+    requests:
+      storage: 1Gi # Storage size takes effect.

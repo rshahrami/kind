@@ -1,0 +1,62 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: zoo 
+spec:
+  containers:
+  - name: zookeeper
+    image: bitnami/zookeeper:3.7.1
+    imagePullPolicy: IfNotPresent
+          # command:
+          # - sh
+          # - -c
+          # - "start-zookeeper \
+          #   --client_port=2181 \
+          #   --election_port=3888 \
+          #   --server_port=2888 \
+          #   --tick_time=2000 \
+          #   --init_limit=10 \
+          #   --sync_limit=5 \
+          #   --heap=512M \
+          #   --max_client_cnxns=60 \
+          #   --snap_retain_count=3 \
+          #   --purge_interval=12 \
+          #   --max_session_timeout=40000 \
+          #   --min_session_timeout=4000 \
+          #   --log_level=INFO"          
+    env:
+    - name: ALLOW_ANONYMOUS_LOGIN
+      value: "yes"
+    ports:
+    - containerPort: 2181
+      name: connect
+    resources:
+      requests:
+        memory: 128Mi
+        cpu: 100m
+      limits:
+        memory: 2048Mi
+        cpu: 100m
+
+          # envFrom:
+          # - configMapRef:
+          #     name: {{ .Values.name }}-config-env
+  # initContainers:
+  # - name: init-myservice
+  #   image: bitnami/minideb:buster-snapshot-20220720T211439Z
+  #   # command: ["chown -R 1001:1001 /bitnami/zookeeper"]
+  #   command: ["echo hello world"]
+
+    volumeMounts:
+    - mountPath: /bitnami/zookeeper
+      name: hostpath-privileged
+ 
+  securityContext:
+    fsGroup: 1001
+    runAsUser: 1001
+    runAsGroup: 1001
+  volumes:
+  - name: hostpath-privileged
+    hostPath:
+      path: "/volumes/zoo"
+      type: DirectoryOrCreate

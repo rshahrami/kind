@@ -1,0 +1,34 @@
+
+name: kafka
+matchLabels: kafka
+replicaCount: 3
+restartPolicy: "Always"
+
+image:
+  repository: bitnami/kafka
+  pullPolicy: IfNotPresent
+  tag: 3.2.0
+
+resources:
+  limits:
+    cpu: 2
+    memory: 4000Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+container:
+  name: kafka
+
+configmap:
+  name: kafka
+
+nodeSelector:
+  nameNode1: kuber-worker1
+  nameNode2: kuber-worker2
+  nameNode3: kuber-worker3
+
+
+environments:
+  nameDiscoveryType: discovery.type
+  valueDiscoveryType: "single-node"

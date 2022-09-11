@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: 
+  name: {{ .Values.name }}
+  labels:
+    deploy: {{ .Values.name }}
+spec:
+  selector:
+    matchLabels:
+      deploy: {{ .Values.name }} 
+  replicas: {{ .Values.replicaCount }}
+  template:
+    metadata:
+      labels:
+        deploy: {{ .Values.name }}
+    spec:
+        restartPolicy: {{ .Values.container.restartPolicy }}
+        initContainers:
+        - image: alpine:3.12
+          name: chmod
+          # volumeMounts:
+          # - mountPath: /bitnami/zookeeper
+          #   name: {{ .Values.name }}
+          # command: [ sh, -c, "chown -R 1001:1001 /bitnami/zookeeper" ]
+          volumeMounts:
+          - mountPath: /volumes/zoo
+            name: {{ .Values.name }}
+          command: [ sh, -c, "chown -R 1001:1001 /volumes/zoo" ]
+        containers:
+        - name: {{ .Values.name }}
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          # command:
+          # - sh
+          # - -c
+          # - "start-zookeeper \
+          #   --client_port=2181 \
+          #   --election_port=3888 \
+          #   --server_port=2888 \
+          #   --tick_time=2000 \
+          #   --init_limit=10 \
+          #   --sync_limit=5 \
+          #   --heap=512M \
+          #   --max_client_cnxns=60 \
+          #   --snap_retain_count=3 \
+          #   --purge_interval=12 \
+          #   --max_session_timeout=40000 \
+          #   --min_session_timeout=4000 \
+          #   --log_level=INFO"          
+          env:
+          - name: ALLOW_ANONYMOUS_LOGIN
+            value: "yes"
+          ports:
+          - containerPort: 2181
+            name: connect
+          resources:
+            requests:
+              memory: {{ .Values.resources.requests.memory }}
+              cpu: {{ .Values.resources.requests.cpu }}
+            limits:
+              memory: {{ .Values.resources.limits.memory }}
+              cpu: {{ .Values.resources.limits.cpu }}
+          volumeMounts:
+          - mountPath: /bitnami/zookeeper
+            name: {{ .Values.name }}
+        volumes:
+        - name: {{ .Values.name }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.name }}

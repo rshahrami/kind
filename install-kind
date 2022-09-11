@@ -1,0 +1,84 @@
+#!/bin/bash
+
+# define all variable
+cluster_config=kind-config.yaml
+ingress_controller=https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+ingress_test=https://kind.sigs.k8s.io/examples/ingress/usage.yaml
+metallb_file=https://raw.githubusercontent.com/metallb/metallb/v0.13.5/config/manifests/metallb-native.yaml
+metallb_config=https://kind.sigs.k8s.io/examples/loadbalancer/metallb-config.yaml
+
+echo "INFO: Welcome"
+
+# get cluster name from input
+echo "import cluster name:"
+read cluster_name
+sleep 3
+
+# create cluster
+kind create cluster --name $cluster_name -- config $cluster_config
+echo "INFO: create kind cluster"
+
+kind get clusters $cluster_name &> /dev/null
+
+if [ $? -eq 1 ]; then
+    echo "ERROR: kind cluster not create with $cluster_name."
+    exit 1
+fi
+
+
+# creare ingress controller 
+kubectl apply -f $ingress_controller
+echo "INFO: create ingress ngnix nontroller"
+
+# wait until is ready to process requests running
+kubectl wait --namespace ingress-nginx \
+  --for=condition=ready pod \
+  --selector=app.kubernetes.io/component=controller \
+  --timeout=90s
+
+# create ingress test file
+kubectl apply -f $ingress_test
+echo "INFO: Create ingress test"
+
+# test ingress that is true
+curl localhost/foo &> /dev/null
+
+if [ $? -eq foo ]; then 
+    echo "INFO: the test1 was passed."
+else
+    echo "ERROR: the test1 did not pass."
+    kubectl delete -f $ingress_test
+    exit 1
+fi
+
+# test ingress that is true
+curl localhost/bar &> /dev/null
+
+if [ $? -eq bar ]; then 
+    echo "INFO: the test2 was passed."
+else
+    echo "ERROR: the test2 did not pass."
+    kubectl delete -f $ingress_test
+    exit 1
+fi
+
+# Apply metallb manifest
+kubectl apply -f $metallb_file
+
+# wait for metallb pod to be ready
+kubectl wait --namespace metallb-system \
+    --for=jsonpath='{.status.phase}'=Running pod/controller
+
+# download metallb config file 
+wget $metallb_config -O metallbConfig.yaml
+
+# # change rang of ip for loadbalancing in metallb config file
+# docker network inspect -f '{{.IPAM.Config}}' kind | cut -d "." -f 2
+
+# change ip range in metallb config file
+cat metallbConfig.yaml | tr 19 $(docker network inspect -f '{{.IPAM.Config}}' kind | cut -d "." -f 2) | tee metallbConfig.yaml
+
+# apply metallb config file for loadbalancing rang of ip
+kubectl apply -f metallbConfig.yaml
+
+# apply 

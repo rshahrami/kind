@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: {{ .Values.name }}
+  # namespace: {{ .Values.namespace }}
+  labels:
+    pv: {{ .Values.name }}
+spec:
+  storageClassName: {{ .Values.name }}
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+    - ReadOnlyMany
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Recycle
+  volumeMode: Filesystem
+  glusterfs:
+    endpoints: glusterfs-cluster
+    path: nexus   # create nexus directory in gluster server 
+    readOnly: no
+    

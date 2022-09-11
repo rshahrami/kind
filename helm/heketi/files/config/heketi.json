@@ -1,0 +1,32 @@
+{
+    "_port_comment": "Heketi Server Port Number",
+    "port": "8080",
+    "_use_auth": "Enable JWT authorization.",
+    "use_auth": true,
+    "_jwt": "Private keys for access",
+    "jwt": {
+      "_admin": "Admin has access to all APIs",
+      "admin": {
+        "key": "secretpassword"
+      },
+
+   
+      "_user": "User only has access to /volumes endpoint",
+      "user": {
+        "key": "secretpassword"
+      }
+    },
+    "_glusterfs_comment": "GlusterFS Configuration",
+    "glusterfs": {
+      "executor": "ssh",
+      "_sshexec_comment": "SSH username and private key file",
+      "sshexec": {
+        "keyfile": "/heketi/heketi-ssh-key",
+        "user": "root",
+        "port": "22"
+      },
+      "_db_comment": "Database file name",
+      "db": "/var/lib/heketi/heketi.db",
+      "loglevel" : "debug"
+    }
+  }

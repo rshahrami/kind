@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: 
+  name: {{ .Values.name.heketi }}
+  labels:
+    deploy: {{ .Values.name.heketi }}
+spec:
+  selector:
+    matchLabels:
+      deploy: {{ .Values.name.heketi }}
+  replicas: {{ .Values.replica }}
+  template:
+    metadata:
+      labels:
+        deploy: {{ .Values.name.heketi }}
+    spec:
+      restartPolicy: {{ .Values.restartPolicy }}
+      containers:
+      - name: {{ .Values.name.heketi }}
+        image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports:
+        - containerPort: 8080
+        resources:
+            requests:
+              memory: {{ .Values.resources.requests.memory }}
+              cpu: {{ .Values.resources.requests.cpu }}
+            limits:
+              memory: {{ .Values.resources.limits.memory }}
+              cpu: {{ .Values.resources.limits.cpu }}
+
+        volumeMounts:
+          - name: ssh-key-file
+            mountPath: /heketi
+          - name: config
+            mountPath: /etc/heketi
+          - name: data
+            mountPath: /var/lib/heketi
+
+      volumes:
+        - name: ssh-key-file
+          secret:
+            secretName: {{ .Values.secret.ssh }}
+        - name: config
+          configMap:
+            name: {{ .Values.name.heketi }}
+        - name: data
+          glusterfs:
+            endpoints: {{ .Values.name.glusterfs }}
+            path: heketi-db-volume
+            readOnly: no
