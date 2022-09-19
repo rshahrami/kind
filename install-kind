@@ -6,74 +6,92 @@ ingress_controller=https://raw.githubusercontent.com/kubernetes/ingress-nginx/ma
 ingress_test=https://kind.sigs.k8s.io/examples/ingress/usage.yaml
 metallb_file=https://raw.githubusercontent.com/metallb/metallb/v0.13.5/config/manifests/metallb-native.yaml
 metallb_config=https://kind.sigs.k8s.io/examples/loadbalancer/metallb-config.yaml
+loadbalancer_test=https://kind.sigs.k8s.io/examples/loadbalancer/usage.yaml
 
-echo "INFO: Welcome"
-
+echo "INFO: Welcome to create kind cluster"
+sleep 2s
 # get cluster name from input
 echo "import cluster name:"
 read cluster_name
-sleep 3
+
+echo "do you need install helm?(y|n)"
+read helm_install
 
 # create cluster
-kind create cluster --name $cluster_name -- config $cluster_config
-echo "INFO: create kind cluster"
+kind create cluster --name $cluster_name --config $cluster_config
+kind get clusters | grep $cluster_name &> /dev/null
 
-kind get clusters $cluster_name &> /dev/null
+if [ $? -eq 0 ]; then
+    echo "INFO: create kind cluster"
+else
+    echo "ERROR: cluster name of $cluster_name not create."
+    exit 1
 
-if [ $? -eq 1 ]; then
-    echo "ERROR: kind cluster not create with $cluster_name."
+fi
+
+sleep 5
+
+echo "INFO: create ingress ngnix nontroller"
+# creare ingress controller 
+kubectl apply -f $ingress_controller
+
+echo "INFO: wait until is ready to process requests running"
+# wait until is ready to process requests running
+kubectl wait --namespace ingress-nginx \
+  --for=condition=ready pod \
+  --selector=app.kubernetes.io/component=controller\
+  --timeout=300s;
+
+###########################################################################
+
+if [ $? -eq 1 ]; then 
+    echo "ERROR: ingress controller not create."
+    kubectl delete -f $ingress_controller
+    sleep 5s
+    kind delete clusters $cluster_name
     exit 1
 fi
 
 
-# creare ingress controller 
-kubectl apply -f $ingress_controller
-echo "INFO: create ingress ngnix nontroller"
-
-# wait until is ready to process requests running
-kubectl wait --namespace ingress-nginx \
-  --for=condition=ready pod \
-  --selector=app.kubernetes.io/component=controller \
-  --timeout=90s
-
+sleep 5
 # create ingress test file
 kubectl apply -f $ingress_test
 echo "INFO: Create ingress test"
 
 # test ingress that is true
-curl localhost/foo &> /dev/null
+for i in foo bar
+do
+    curl_test=$(curl localhost/$i)
+    if [[ "$curl_test" == "$i" ]]; then 
+        echo "INFO: the tests are ok."
+    else
+        echo "ERROR: the tests did not pass."
+        # kubectl delete -f $ingress_test
+        exit 1
+    fi
+done
 
-if [ $? -eq foo ]; then 
-    echo "INFO: the test1 was passed."
-else
-    echo "ERROR: the test1 did not pass."
-    kubectl delete -f $ingress_test
-    exit 1
-fi
 
-# test ingress that is true
-curl localhost/bar &> /dev/null
+echo "INFO: the tests was passed."
 
-if [ $? -eq bar ]; then 
-    echo "INFO: the test2 was passed."
-else
-    echo "ERROR: the test2 did not pass."
-    kubectl delete -f $ingress_test
-    exit 1
-fi
 
+sleep 5 
 # Apply metallb manifest
 kubectl apply -f $metallb_file
 
+############################################################### this session in testing ##################
+# # wait for metallb pod to be ready
+# kubectl wait --namespace metallb-system \
+#     --for=jsonpath='{.status.phase}'=Running pod/controller \
+#     --timeout=300s;
+############################################################### this session in testing ##################
+
+
 # wait for metallb pod to be ready
-kubectl wait --namespace metallb-system \
-    --for=jsonpath='{.status.phase}'=Running pod/controller
+sleep 200s
 
 # download metallb config file 
 wget $metallb_config -O metallbConfig.yaml
-
-# # change rang of ip for loadbalancing in metallb config file
-# docker network inspect -f '{{.IPAM.Config}}' kind | cut -d "." -f 2
 
 # change ip range in metallb config file
 cat metallbConfig.yaml | tr 19 $(docker network inspect -f '{{.IPAM.Config}}' kind | cut -d "." -f 2) | tee metallbConfig.yaml
@@ -81,4 +99,18 @@ cat metallbConfig.yaml | tr 19 $(docker network inspect -f '{{.IPAM.Config}}' ki
 # apply metallb config file for loadbalancing rang of ip
 kubectl apply -f metallbConfig.yaml
 
-# apply 
+
+
+sleep 5
+# create loadbalancer test
+echo "INFO: create loadbalancer test"
+kubectl apply -f $loadbalancer_test
+
+
+# Now verify that the loadbalancer works by sending traffic to it's external IP and port. 
+LB_IP=$(kubectl get svc/foo-service -o=jsonpath='{.status.loadBalancer.ingress[0].ip}')
+
+# test loadbalancer true work
+for _ in {1..10}; do
+    curl ${LB_IP}:5678
+done
