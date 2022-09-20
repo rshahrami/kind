@@ -8,55 +8,55 @@ metallb_file=https://raw.githubusercontent.com/metallb/metallb/v0.13.5/config/ma
 metallb_config=https://kind.sigs.k8s.io/examples/loadbalancer/metallb-config.yaml
 loadbalancer_test=https://kind.sigs.k8s.io/examples/loadbalancer/usage.yaml
 
-echo "INFO: Welcome to create kind cluster"
-sleep 2s
-# get cluster name from input
-echo "import cluster name:"
-read cluster_name
+# echo "INFO: Welcome to create kind cluster"
+# sleep 2s
+# # get cluster name from input
+# echo "import cluster name:"
+# read cluster_name
 
-echo "do you need install helm?(y|n)"
-read helm_install
+# echo "do you need install helm?(y|n)"
+# read helm_install
 
-# create cluster
-kind create cluster --name $cluster_name --config $cluster_config
-kind get clusters | grep $cluster_name &> /dev/null
+# # create cluster
+# kind create cluster --name $cluster_name --config $cluster_config
+# kind get clusters | grep $cluster_name &> /dev/null
 
-if [ $? -eq 0 ]; then
-    echo "INFO: create kind cluster"
-else
-    echo "ERROR: cluster name of $cluster_name not create."
-    exit 1
+# if [ $? -eq 0 ]; then
+#     echo "INFO: create kind cluster"
+# else
+#     echo "ERROR: cluster name of $cluster_name not create."
+#     exit 1
 
-fi
+# fi
 
-sleep 5
+# sleep 5
 
-echo "INFO: create ingress ngnix nontroller"
-# creare ingress controller 
-kubectl apply -f $ingress_controller
+# echo "INFO: create ingress ngnix nontroller"
+# # creare ingress controller 
+# kubectl apply -f $ingress_controller
 
-echo "INFO: wait until is ready to process requests running"
-# wait until is ready to process requests running
-kubectl wait --namespace ingress-nginx \
-  --for=condition=ready pod \
-  --selector=app.kubernetes.io/component=controller\
-  --timeout=300s;
+# echo "INFO: wait until is ready to process requests running"
+# # wait until is ready to process requests running
+# kubectl wait --namespace ingress-nginx \
+#   --for=condition=ready pod \
+#   --selector=app.kubernetes.io/component=controller\
+#   --timeout=300s;
 
-###########################################################################
+# ###########################################################################
 
-if [ $? -eq 1 ]; then 
-    echo "ERROR: ingress controller not create."
-    kubectl delete -f $ingress_controller
-    sleep 5s
-    kind delete clusters $cluster_name
-    exit 1
-fi
+# if [ $? -eq 1 ]; then 
+#     echo "ERROR: ingress controller not create."
+#     kubectl delete -f $ingress_controller
+#     sleep 5s
+#     kind delete clusters $cluster_name
+#     exit 1
+# fi
 
-
-sleep 5
+sleep 3
 # create ingress test file
 kubectl apply -f $ingress_test
 echo "INFO: Create ingress test"
+sleep 7
 
 # test ingress that is true
 for i in foo bar
@@ -66,29 +66,25 @@ do
         echo "INFO: the tests are ok."
     else
         echo "ERROR: the tests did not pass."
-        # kubectl delete -f $ingress_test
+        kubectl delete -f $ingress_test
         exit 1
     fi
+    sleep 3
 done
-
-
 echo "INFO: the tests was passed."
 
 
 sleep 5 
 # Apply metallb manifest
 kubectl apply -f $metallb_file
-
+# wait for metallb pod to be ready
+sleep 200s
 ############################################################### this session in testing ##################
 # # wait for metallb pod to be ready
 # kubectl wait --namespace metallb-system \
 #     --for=jsonpath='{.status.phase}'=Running pod/controller \
 #     --timeout=300s;
 ############################################################### this session in testing ##################
-
-
-# wait for metallb pod to be ready
-sleep 200s
 
 # download metallb config file 
 wget $metallb_config -O metallbConfig.yaml
@@ -99,13 +95,11 @@ cat metallbConfig.yaml | tr 19 $(docker network inspect -f '{{.IPAM.Config}}' ki
 # apply metallb config file for loadbalancing rang of ip
 kubectl apply -f metallbConfig.yaml
 
-
-
 sleep 5
 # create loadbalancer test
 echo "INFO: create loadbalancer test"
 kubectl apply -f $loadbalancer_test
-
+sleep 7
 
 # Now verify that the loadbalancer works by sending traffic to it's external IP and port. 
 LB_IP=$(kubectl get svc/foo-service -o=jsonpath='{.status.loadBalancer.ingress[0].ip}')
